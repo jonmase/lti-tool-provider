@@ -1,0 +1,18 @@
+{
+    "name": "adurolms/lti-tool-provider",
+    "type": "library",
+    "description": "PHP LTI Tool Provider",
+    "keywords": ["lti", "tool provider"],
+    "homepage": "http://projects.oscelot.org/gf/project/php-basic-lti",
+    "license": "GPL-3.0",
+    "authors": [
+        {
+            "name": "Stephen P Vickers",
+            "email": "stephen@spvsoftwareproducts.com",
+            "homepage": "http://www.spvsoftwareproducts.com"
+        }
+    ],
+    "autoload": {
+	"classmap": ["LTI_Tool_Provider.php"]
+    }
+}
