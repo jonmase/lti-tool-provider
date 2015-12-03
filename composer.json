@@ -13,6 +13,6 @@
         }
     ],
     "autoload": {
-	"classmap": ["LTI_Tool_Provider.php"]
+	"classmap": ["LTI_Tool_Provider.php", "OAuth.php"]
     }
 }
