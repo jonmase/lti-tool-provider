@@ -53,6 +53,10 @@
  *                      Added workflow for automatically assigning resource link ID on first launch of a content-item message created link
  *                      Enhanced checking of parameter values
  *                      Added mediaTypes and documentTargets properties to LTI_Tool_Provider class for ContentItemSelectionRequest messages
+ *   2.5.01  11-Mar-16  Fixed bug with saving User before ResourceLink in LTI_Tool_Provider->authenticate()
+ *                      Fixed bug with creating a MySQL data connector when a database connector is passed to getDataConnector()
+ *                      Added check in OAuth.php that query string is set before extracting the GET parameters
+ *                      Added check for incorrect version being passed in lti_version parameter
  */
 
 /**
@@ -691,6 +695,12 @@ EOD;
         $this->reason = 'Invalid consumer key.';
       }
     }
+    if ($this->isOK && isset($this->consumer->lti_version)) {
+      $this->isOK = $this->consumer->lti_version == $_POST['lti_version'];
+      if ($this->debugMode && !$this->isOK) {
+        $this->reason = 'Incorrect lti_version parameter.';
+      }
+    }
     $now = time();
     if ($this->isOK) {
       $today = date('Y-m-d', $now);
@@ -892,17 +902,6 @@ EOD;
         $this->user->roles = LTI_Tool_Provider::parseRoles($_POST['roles']);
       }
 #
-### Save the user instance
-#
-      if (isset($_POST['lis_result_sourcedid'])) {
-        if ($this->user->lti_result_sourcedid != $_POST['lis_result_sourcedid']) {
-          $this->user->lti_result_sourcedid = $_POST['lis_result_sourcedid'];
-          $this->user->save();
-        }
-      } else if (!empty($this->user->lti_result_sourcedid)) {
-        $this->user->delete();
-      }
-#
 ### Initialise the consumer and check for changes
 #
       $this->consumer->defaultEmail = $this->defaultEmail;
@@ -935,9 +934,9 @@ EOD;
           $this->consumer->consumer_guid = $_POST['tool_consumer_instance_guid'];
           $doSaveConsumer = TRUE;
         } else if (!$this->consumer->protected) {
-          $doSaveConsumer = ($this->consumer->consumer_guid != $_POST['tool_consumer_instance_guid']);
-          if ($doSaveConsumer) {
+          if ($this->consumer->consumer_guid != $_POST['tool_consumer_instance_guid']) {
             $this->consumer->consumer_guid = $_POST['tool_consumer_instance_guid'];
+            $doSaveConsumer = TRUE;
           }
         }
       }
@@ -971,6 +970,17 @@ EOD;
 ### Persist changes to resource link
 #
       $this->resource_link->save();
+#
+### Save the user instance
+#
+      if (isset($_POST['lis_result_sourcedid'])) {
+        if ($this->user->lti_result_sourcedid != $_POST['lis_result_sourcedid']) {
+          $this->user->lti_result_sourcedid = $_POST['lis_result_sourcedid'];
+          $this->user->save();
+        }
+      } else if (!empty($this->user->lti_result_sourcedid)) {
+        $this->user->delete();
+      }
     }
 
     return $this->isOK;
@@ -3822,6 +3832,9 @@ abstract class LTI_Data_Connector {
           $type = 'mysql';
         }
         $type = strtolower($type);
+        if ($type == 'mysql') {
+          $db = NULL;
+        }
         $type = "LTI_Data_Connector_{$type}";
         require_once("{$type}.php");
         if (is_null($db)) {

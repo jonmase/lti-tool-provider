@@ -24,6 +24,7 @@
  *   2.3.06   5-Aug-14  Fixed bug with loading CLOB field
  *   2.4.00  10-Apr-15
  *   2.5.00  20-May-15  Updated Resource_Link_save to allow for changes in ID values
+ *   2.5.01  11-Mar-16  Replaced duplicate parameter names in query with distinct names
 */
 
 ###
@@ -739,10 +740,10 @@ class LTI_Data_Connector_oci extends LTI_Data_Connector {
     if (is_null($user->created)) {
       $sql = 'INSERT INTO ' . $this->dbTableNamePrefix . LTI_Data_Connector::USER_TABLE_NAME . ' (consumer_key, context_id, ' .
              'user_id, lti_result_sourcedid, created, updated) ' .
-             'VALUES (:key, :id, :user_id, :lti_result_sourcedid, :now, :now)';
+             'VALUES (:key, :id, :user_id, :lti_result_sourcedid, :created, :updated)';
     } else {
       $sql = 'UPDATE ' . $this->dbTableNamePrefix . LTI_Data_Connector::USER_TABLE_NAME . ' ' .
-             'SET lti_result_sourcedid = :lti_result_sourcedid, updated = :now ' .
+             'SET lti_result_sourcedid = :lti_result_sourcedid, updated = :updated ' .
              'WHERE (consumer_key = :key) AND (context_id = :id) AND (user_id = :user_id)';
     }
     $query = oci_parse($this->db, $sql);
@@ -750,7 +751,10 @@ class LTI_Data_Connector_oci extends LTI_Data_Connector {
     oci_bind_by_name($query, ':id', $id);
     oci_bind_by_name($query, ':user_id', $userId);
     oci_bind_by_name($query, ':lti_result_sourcedid', $user->lti_result_sourcedid);
-    oci_bind_by_name($query, ':now', $now);
+    if (is_null($user->created)) {
+      oci_bind_by_name($query, ':created', $now);
+    }
+    oci_bind_by_name($query, ':updated', $now);
     $ok = oci_execute($query);
     if ($ok) {
       if (is_null($user->created)) {
